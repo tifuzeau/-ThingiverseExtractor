@@ -3,6 +3,7 @@
 import os
 import sys
 import zipfile
+import shutil
 import argparse
 import configparser
 
@@ -17,7 +18,12 @@ except ImportError:
 	messagebox = None
 	Tk = None
 
-CFG_FILE = "conf.ini"
+
+CFG_FILE = "config.ini"
+
+def eprintGui(msg):
+	title = "Error"
+	messagebox.showerror(title=title, message=msg)
 
 def eprint(*args, **kwargs):
 	print(*args, file=sys.stderr, **kwargs)
@@ -60,16 +66,24 @@ class Config:
 
 	def __init__(self, cfg_Path):
 		config = configparser.ConfigParser()
-		if not os.path.exists(cfg_Path):
-			self.InitConfigFile()
+		configPath = Path(cfg_Path)
+		self.confError = False
+		if not configPath.exists():
+			self.InitConfigFile(configPath)
 			return
 		config.read(cfg_Path)
 		default = config[self.SectionName]
 		self.initalDir = default.get(self.InitialName)
-		self.destDir = default.get(self.DestName)
-		self.archiveDest = default.get(self.ArchiveName)
+		self.dstDir = default.get(self.DestName)
+		self.archiveDst = default.get(self.ArchiveName)
 		self.deleteArchive = default.getboolean(self.DeleteName)
 		self.interactive = default.getboolean(self.InteractiveName)
+
+	def _initPopUp(self):
+		title = "Init Config"
+		msg = "Follow initalitation of config file"
+		ret = messagebox.askyesno(title=title, message=msg)
+		return ret
 
 	def _initSourceDir(self):
 		title = "Initial Dir for selection"
@@ -98,7 +112,7 @@ class Config:
 		ret = messagebox.askyesno(title=title, message=msg, default="no")
 		return ret
 
-	def _SaveConfig(self):
+	def _SaveConfig(self, configPath):
 		config = configparser.ConfigParser()
 		config.add_section(self.SectionName)
 		config.set(self.SectionName, self.InitialName, str(self.initalDir))
@@ -106,21 +120,25 @@ class Config:
 		config.set(self.SectionName, self.ArchiveName, str(self.archiveDest))
 		config.set(self.SectionName, self.DeleteName, str(self.deleteArchive))
 		config.set(self.SectionName, self.InteractiveName, str(self.interactive))
-		with open(CFG_FILE, "w") as fd:
+		with open(configPath.resolve(), "w") as fd:
 			config.write(fd)
+		configPath.chmod(0o755)
 
-	def InitConfigFile(self):
+	def InitConfigFile(self, configPath):
+		if not self._initPopUp():
+			self.confError = True
+			return
 		self.initalDir = self._initSourceDir()
 		self.destDir = self._initDestDir()
 		self.deleteArchive = self._initDeleteArchive()
 		self.archiveDest = self._initArchiveDest()
 		self.interactive = self._initInteractive()
-		self._SaveConfig()
+		self._SaveConfig(configPath)
 
 
 class FileToExtract:
 
-	def __init__(self, src, dstDir, dstName=None, archivedstDir=None, delete=False, interactive=False):
+	def __init__(self, src, dstDir, dstName=None, archivedstDir=None, delete=False, interactive=False, perror=None):
 		self.src = Path(src)
 		self.dstDir = Path(dstDir)
 		self.dstPath = None
@@ -128,6 +146,9 @@ class FileToExtract:
 		self.archiveDstPath = self.archiveDstDir / self.src.name
 		self.delete = delete
 		self.UpdateDstPath(dstName)
+
+	def perror(self, msg):
+		print(msg, file=sys.stderr)
 
 	def UpdateDstPath(self, dstName):
 		if not dstName:
@@ -149,22 +170,34 @@ class FileToExtract:
 		return True	
 
 	def ExtractFile(self, src, dst):
+		if self.Checkdst(self.dstPath) == False:
+			self.perror(f"Error: {self.dstPath} already exists")
+			return False
 		with zipfile.ZipFile(src, 'r') as fd:
 			fd.extractall(dst)
 		print(f"Extraction: {src} to {dst}")
+		return True
+
+	def deleteArchive(self):
+		self.src.unlink()
+		print(f"Remove: {self.src.name}")
+
+
+	def moveArchive(self):
+		if not self.Checkdst(self.archiveDstPath):
+			self.perror(f"Error: {self.archiveDstPath} already exists")
+		shutil.move(str(self.src.resolve()), str(self.dstPath.resolve()))
+		print(f"Move: {self.src} to {self.archiveDstPath}")
+		
 	
 	def Run(self):
-		if self.Checkdst(self.dstPath) == False:
-			eprint(f"Error: {self.dstPath} already exists")
-			return
-		self.ExtractFile(self.src, self.dstPath)      
+		if not self.ExtractFile(self.src, self.dstPath):
+			return      
 		if self.delete:
-			self.src.unlink()
-			print(f"Remove: {self.src.name}")
-			return
-		if self.Checkdst(self.archiveDstPath):
-			self.src.replace(self.archiveDstPath)
-			print(f"Move: {self.src} to {self.archiveDstPath}")
+			self.deleteArchive()
+		else:
+			self.moveArchive()
+			
 
 
 def argvparses():
@@ -175,7 +208,7 @@ def argvparses():
 
 	# Path thing
 	parser.add_argument("--src", type=str, dest="srcList",nargs="+", help="Path of many zip file source", required=True)
-	parser.add_argument("--dst", type=str, dest="dstPath", help="Destination path of extraction", default="./", required=False)
+	parser.add_argument("--dst", type=str, dest="dstDir", help="Destination path of extraction", default="./", required=False)
 	parser.add_argument("--archivedst", type=str, dest="archiveDst", help="path to archive folder", default="./", required=False)
 
 	# Other thing
@@ -187,18 +220,39 @@ def argvparses():
 
 def GetZipList(initalDir):
 	title = "Zip Selection"
+	msg = "Select zip file to extract. Use ctrl for multiple selection"
+	messagebox.showinfo(title=title, message=msg)
 	initialdir = initalDir
 	filetype = (("zip file", "*.zip"),)
 	zipList = filedialog.askopenfilenames(initialdir=initialdir, title=title, filetypes=filetype, multiple=True)
 	return zipList
 
+def InteraciveGui():
+	pass
+
+def chdir():
+	path = Path(sys.argv[0])
+	os.chdir(path.parent)
+
 def mainGui():
 	root = initTk()
+	chdir()
 	config = Config(CFG_FILE)
+	if config.confError:
+		return
 	zipList = GetZipList(config.initalDir)
+	if not zipList:
+		return
+	extractionList = []
 	for zipFile in zipList:
-		print(zipFile)
-	
+		if Path(zipFile).exists():
+			extractionList.append(FileToExtract(src=zipFile, dstDir=config.dstDir, dstName=None, archivedstDir=config.archiveDst, delete=config.deleteArchive, interactive=config.interactive))
+		else:
+			eprintGui(f"Error: {zipFile} not found. skip")
+	if config.interactive:
+		InteraciveGui(extractionList)
+	for thing in extractionList:
+		thing.Run()
 
 def InteraciveConsole(zipList):
 	print(f"Interacive mode Starting.")
@@ -213,7 +267,7 @@ def mainConsole():
 	extractionList = []
 	for zipFile in zipList:
 		if Path(zipFile).exists():
-			extractionList.append(FileToExtract(src=zipFile, dstDir=argv.dstPath, dstName=None, archivedstDir=argv.archiveDst, delete=argv.deleteArchive, interactive=argv.interactive))
+			extractionList.append(FileToExtract(src=zipFile, dstDir=argv.dstDir, dstName=None, archivedstDir=argv.archiveDst, delete=argv.deleteArchive, interactive=argv.interactive))
 		else:
 			eprint(f"Error: {zipFile} not found. skip")
 	if argv.interactive:
