@@ -6,33 +6,89 @@ import zipfile
 import shutil
 
 from pathlib import Path
+from globalVar import *
 
-class ThingExtractor:
+class ThingFile:
+	"""
+		Model
+	"""
+	def __init__(self, zipSrc, dstDir=None, dstName=None, zipDstDir=None, zipDstName=None,
+			delReadme=False, delLicense=False, delZip=False):
+		self.zipSrc = Path(zipSrc)
 
-	def __init__(self, src, dstDir, dstName=None, archivedstDir=None, delete=False, interactive=False, perror=None):
-		self.src = Path(src)
+		# extraction dst
+		if not dstDir:
+			dstDir = "."
 		self.dstDir = Path(dstDir)
-		self.dstPath = None
-		self.archiveDstDir = Path(archivedstDir)
-		self.archiveDstPath = self.archiveDstDir / self.src.name
-		self.delete = delete
-		self.UpdateDstPath(dstName)
-
-	def perror(self, msg):
-		print(msg, file=sys.stderr)
-
-	def UpdateDstPath(self, dstName):
 		if not dstName:
-			dstName = self.src.stem
-		self.dstPath = self.dstDir / dstName
+			dstName = self.zipSrc.stem
+		self.dstName = Path(dstName)
+		# zip dst
 
-	def Checkdst(self, dst):
-		"""
-		Returns
-		-------
-		bool:
-			False if error 
-		"""
+		if not zipDstDir:
+			self.zipDstDir = None
+		else:
+			self.zipDstDir = Path(zipDstDir)
+		if not zipDstName:
+			zipDstName = self.zipSrc.name
+		self.zipDstName = Path(zipDstName)
+		#flag
+		self.delReadme = delReadme
+		self.delLicense = delLicense
+		self.delZip = delZip
+
+	def __setattr__(self, name, value):
+		if name == "dst":
+			if not value:
+				return
+			dst = Path(value)
+			self.dstDir = dst.parent.resolve()
+			self.dstName = dst.name
+			print(f"set dst: {value} -> parent {self.dstDir}, Name: {self.dstName}")
+		if name == "zipDst":
+			if not value:
+				self.zipDstDir = None
+				self.zipDstName = None
+			else:
+				zipDst = Path(value)
+				self.zipDstDir = zipDst.parent.resolve()
+				self.zipDstName = zipDst.name
+		else:
+			super().__setattr__(name, value)
+
+	def __getattribute__(self, name):
+		if name == "dst":
+			return self.dstDir / self.dstName
+		if name == "zipDst":
+			if not self.zipDstDir:
+				return None
+			return self.zipDstDir / self.zipDstName
+		else:
+			return super().__getattribute__(name)
+
+class ThingControl:
+	"""
+		Control
+	"""
+
+	def __init__(self, zipList = None):
+		self.ThingList = []
+		if not zipList:
+			return
+		self.FeedList(zipList)
+
+	def Append(self, arg):
+		self.ThingList.append(ThingFile(arg))
+
+	def AppendThing(self, thing):
+		self.ThingList.append(thing)
+
+	def FeedList(self, argsList):
+		for args in argsList:
+			if Path(args['zipSrc']).exists():
+				self.ThingList.append(ThingFile(**args))
+
+	def _Checkdst(self, dst):
 		if dst.parent.exists() == False:
 			print(f"mkdir: {dst.parent}")
 			dst.parent.mkdir()
@@ -40,31 +96,39 @@ class ThingExtractor:
 			return False
 		return True	
 
-	def ExtractFile(self, src, dst):
-		if self.Checkdst(self.dstPath) == False:
-			self.perror(f"Error: {self.dstPath} already exists")
+	def ZipExtractor(self, thing):
+		if self._Checkdst(thing.dst) == False:
+			print(f"Error: {thing.dst} already exists")
 			return False
-		with zipfile.ZipFile(src, 'r') as fd:
-			fd.extractall(dst)
-		print(f"Extraction: {src} to {dst}")
+		with zipfile.ZipFile(thing.zipSrc, 'r') as fd:
+			fd.extractall(thing.dst)
+		print(f"Extraction: {thing.zipSrc} to {thing.dst}")
 		return True
 
-	def deleteArchive(self):
-		self.src.unlink()
-		print(f"Remove: {self.src.name}")
+	def DeleteFile(self, path):
+		path.unlink()
+		print(f"Remove: {path.name}")
 
+	def MoveZip(self, thing):
+		if not thing.zipDst:
+			return
+		if not self._Checkdst(thing.zipDst):
+			print(f"Error: {thing.zipDst} already exists")
+		shutil.move(str(thing.zipSrc.resolve()), str(thing.zipDst.resolve()))
+		print(f"Move: {thing.zipSrc} to {thing.zipDst}")
 
-	def moveArchive(self):
-		if not self.Checkdst(self.archiveDstPath):
-			self.perror(f"Error: {self.archiveDstPath} already exists")
-		shutil.move(str(self.src.resolve()), str(self.dstPath.resolve()))
-		print(f"Move: {self.src} to {self.archiveDstPath}")
-		
-	
-	def Run(self):
-		if not self.ExtractFile(self.src, self.dstPath):
-			return      
-		if self.delete:
-			self.deleteArchive()
+	def OneExtraction(self, thing):
+		if not self.ZipExtractor(thing):
+			return
+		if thing.delReadme:
+			self.DeleteFile(thing.dst / README_NAME)
+		if thing.delLicense:
+			self.DeleteFile(thing.dst / LICENSE_NAME)
+		if thing.delZip:
+			self.DeleteFile(thing.zipSrc)
 		else:
-			self.moveArchive()
+			self.MoveZip(thing)
+
+	def RunExtraction(self):
+		for thing in self.ThingList:
+			self.OneExtraction(thing)

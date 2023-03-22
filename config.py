@@ -28,8 +28,10 @@ class Config:
 	InitialName = "InitalDir"
 	DestName = "DestDir"
 	ArchiveName = "ArchiveDest"
-	DeleteName = "DeleteArchive"
-	InteractiveName = "Interactive"
+	#delete thing
+	NameDeleteReadme = "DeleteReadme"
+	NameDeleteLicense = "DeleteLicense"
+	NameDeleteArchive = "DeleteArchive"
 
 
 	def __init__(self, cfg_Path):
@@ -41,11 +43,14 @@ class Config:
 			return
 		config.read(cfg_Path)
 		default = config[self.SectionName]
+		#path
 		self.initalDir = default.get(self.InitialName)
 		self.dstDir = default.get(self.DestName)
 		self.archiveDst = default.get(self.ArchiveName)
-		self.deleteArchive = default.getboolean(self.DeleteName)
-		self.interactive = default.getboolean(self.InteractiveName)
+		#delete var
+		self.deleteReadme = default.getboolean(self.NameDeleteReadme)
+		self.deleteLicense = default.getboolean(self.NameDeleteLicense)
+		self.deleteArchive = default.getboolean(self.NameDeleteArchive)
 
 	def _initPopUp(self):
 		title = "Init Config"
@@ -73,21 +78,20 @@ class Config:
 		title = "Archive Dest"
 		dest_Archive = filedialog.askdirectory(title=title)
 		return Path(dest_Archive)
-	
-	def _initInteractive(self):
-		title = "Interactive Statu"
-		msg  = "Do you whant to always active interactive mode"
-		ret = messagebox.askyesno(title=title, message=msg, default="no")
-		return ret
+
 
 	def _SaveConfig(self, configPath):
 		config = configparser.ConfigParser()
 		config.add_section(self.SectionName)
+		#path
 		config.set(self.SectionName, self.InitialName, str(self.initalDir))
 		config.set(self.SectionName, self.DestName, str(self.destDir))
 		config.set(self.SectionName, self.ArchiveName, str(self.archiveDest))
-		config.set(self.SectionName, self.DeleteName, str(self.deleteArchive))
-		config.set(self.SectionName, self.InteractiveName, str(self.interactive))
+		#delete 
+		config.set(self.SectionName, self.NameDeleteReadme, str(self.deleteReadme))
+		config.set(self.SectionName, self.NameDeleteLicense, str(self.deleteLicense))
+		config.set(self.SectionName, self.NameDeleteArchive, str(self.deleteArchive))
+		
 		with open(configPath.resolve(), "w") as fd:
 			config.write(fd)
 		configPath.chmod(0o755)

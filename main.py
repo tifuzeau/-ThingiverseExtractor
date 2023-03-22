@@ -9,61 +9,74 @@ from pathlib import Path
 from globalVar import *
 
 from argvparser import argvparses
-from thingExtractor import ThingExtractor
-
-from gui import *
-from config import Config
+from thingExtractor import ThingControl, ThingFile
 
 
 def chdir():
 	path = Path(sys.argv[0])
 	os.chdir(path.parent)
 
-def mainGui():
-	root = initTk()
-	chdir()
-	config = Config(CFG_FILE)
-	if config.confError:
-		return
-	zipList = GetZipList(config.initalDir)
-	if not zipList:
-		return
-	extractionList = []
-	for zipFile in zipList:
-		if Path(zipFile).exists():
-			extractionList.append(ThingExtractor(src=zipFile, dstDir=config.dstDir, dstName=None, archivedstDir=config.archiveDst, delete=config.deleteArchive, interactive=config.interactive))
-		else:
-			eprintGui(f"Error: {zipFile} not found. skip")
-	if config.interactive:
-		InteraciveGui(extractionList)
-	for thing in extractionList:
-		thing.Run()
-
-def InteraciveConsole(zipList):
+def InteraciveConsole(argsList):
 	print(f"Interacive mode Starting.")
-	print(f"on empty inpute name convserver")
-	for zipFile in zipList:
-		new_dstName = input(f"{zipFile.src} -> {zipFile.dstPath}/")
-		zipFile.UpdateDstPath(new_dstName)
+	print(f"on empty inpute name convserver on ctrl + D skip")
+	control = ThingControl()
+	for args in argsList:
+		thing = ThingFile(**args)
+		try:
+			dst = input(f"extraction, {thing.zipSrc} -> {thing.dst}: ")
+			if dst != "":
+				thing.dst = dst
+			ret = input(f"Remove ZipSource (y/N): ")
+			thing.delZip = ret in YES_TEXT
+			move_zip = input(f"Move ZipSource (y/N): ")
+			if move_zip in YES_TEXT:
+				new_zipDst = input(f"Move {thing.zipSrc} to : ")
+				thing.zipDst = new_zipDst
+			else:
+				thing.zipDst = None
+			ret = input(f"Remove {README_NAME} (y/N): ")
+			thing.delReadme = ret in YES_TEXT
+			ret = input(f"Remove {LICENSE_NAME} (y/N): ")
+			thing.delLicense = ret in YES_TEXT
+		except EOFError:
+			continue 
+		control.OneExtraction(thing)
 
 def mainConsole():
 	argv = argvparses()
 	zipList = argv.srcList
-	extractionList = []
+	argsList = []
 	for zipFile in zipList:
 		if Path(zipFile).exists():
-			extractionList.append(ThingExtractor(src=zipFile, dstDir=argv.dstDir, dstName=None, archivedstDir=argv.archiveDst, delete=argv.deleteArchive, interactive=argv.interactive))
+			args = {
+				'zipSrc': zipFile,
+    			'dstDir': argv.dstDir,
+    			'dstName': None,
+    			'zipDstDir': argv.zipDstDir,
+    			'zipDstName': None,
+    			'delReadme': argv.delReadme,
+    			'delLicense': argv.delLicense,
+    			'delZip': argv.delZip,
+			}
 		else:
 			eprint(f"Error: {zipFile} not found. skip")
-	if argv.interactive:
-		InteraciveConsole(extractionList)
-	for extra in extractionList:
-		extra.Run()
+		argsList.append(args)
+	if not argv.interactive:
+		control = ThingControl(argsList)
+		control.RunExtraction()
+	else:
+		InteraciveConsole(argsList)
+
 
 if __name__ == "__main__":
-	if Tk is None:
-		# Mode Console
-		mainConsole()
-	else:
-		# Mode Gui
-		mainGui()
+	mainConsole()
+
+#if __name__ == "__main__":
+#	if ThingGui.EnabalGui():
+#		# Mode Gui
+#		chdir()
+#		mainGui()
+#		
+#	else:
+#		# Mode Console
+#		mainConsole()
