@@ -59,7 +59,7 @@ def mainConsole():
     			'delZip': argv.delZip,
 			}
 		else:
-			eprint(f"Error: {zipFile} not found. skip")
+			print(f"Error: {zipFile} not found. skip")
 		argsList.append(args)
 	if not argv.interactive:
 		control = ThingControl(argsList)

@@ -14,6 +14,7 @@ def argvparses():
 	# Other thing
 	parser.add_argument("--DeleteReadme", action="store_true", dest="delReadme", help="todo", default=False)
 	parser.add_argument("--DeleteLicense", action="store_true", dest="delLicense", help="todo", default=False)
+	parser.add_argument("--DeleteZip", action="store_true", dest="delZip", help="todo", default=False)
 	parser.add_argument("--interactive", "-i", action="store_true", dest="interactive", help="set interactivemode", default=False, required=False)
 	
 	argv = parser.parse_args()
