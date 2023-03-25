@@ -16,6 +16,7 @@ def chdir():
 	path = Path(sys.argv[0])
 	os.chdir(path.parent)
 
+
 def InteraciveConsole(argsList):
 	print(f"Interacive mode Starting.")
 	print(f"on empty inpute name convserver on ctrl + D skip")
@@ -28,12 +29,13 @@ def InteraciveConsole(argsList):
 				thing.dst = dst
 			ret = input(f"Remove ZipSource (y/N): ")
 			thing.delZip = ret in YES_TEXT
-			move_zip = input(f"Move ZipSource (y/N): ")
-			if move_zip in YES_TEXT:
-				new_zipDst = input(f"Move {thing.zipSrc} to : ")
-				thing.zipDst = new_zipDst
-			else:
-				thing.zipDst = None
+			if not thing.delZip:
+				move_zip = input(f"Move ZipSource (y/N): ")
+				if move_zip in YES_TEXT:
+					new_zipDst = input(f"Move {thing.zipSrc} to : ")
+					thing.zipDst = new_zipDst
+				else:
+					thing.zipDst = None
 			ret = input(f"Remove {README_NAME} (y/N): ")
 			thing.delReadme = ret in YES_TEXT
 			ret = input(f"Remove {LICENSE_NAME} (y/N): ")
@@ -52,7 +54,7 @@ def mainConsole():
 				'zipSrc': zipFile,
     			'dstDir': argv.dstDir,
     			'dstName': None,
-    			'zipDstDir': argv.zipDstDir,
+    			'zipDstDir': argv.zipDst,
     			'zipDstName': None,
     			'delReadme': argv.delReadme,
     			'delLicense': argv.delLicense,
@@ -60,7 +62,10 @@ def mainConsole():
 			}
 		else:
 			print(f"Error: {zipFile} not found. skip")
+			continue
 		argsList.append(args)
+	if not argsList:
+		return
 	if not argv.interactive:
 		control = ThingControl(argsList)
 		control.RunExtraction()

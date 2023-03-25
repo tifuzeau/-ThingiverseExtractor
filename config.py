@@ -2,107 +2,75 @@ import configparser
 
 from pathlib import Path
 
-class Config:
-	""" 
-		Get or Make Config 
-
-	Atributes
-	---------
-
-	*Name : str
-		key and section name 
-	initalDir : Path
-		Path to the initial directori for zip searching
-	destDir : Path
-		Path of extractacting zip file
-	archiveDest : Path
-		Path where move zip file after extraction
-	deleteArchive : Bool
-		true for removing archine instaed of moving to archiveDest
-	interactive : Bool
-		true for asking name folder where sotr extraction
-
-
+class ConfigModel:
 	"""
+		Model of config
+	"""
+
+	def __init__(self):
+		#path
+		self.defaultDstDir = None
+		self.defaultZipDst = None
+		#delete var
+		self.delReadme = None
+		self.delLicense = None
+		self.delZip = None
+
+class ConfigControl(ConfigModel):
+	"""
+		Controleur of Config Model
+	"""
+
+	# For get in file
 	SectionName = "Default Value"
 	InitialName = "InitalDir"
 	DestName = "DestDir"
-	ArchiveName = "ArchiveDest"
+	ZipName = "ZipDest"
 	#delete thing
 	NameDeleteReadme = "DeleteReadme"
 	NameDeleteLicense = "DeleteLicense"
-	NameDeleteArchive = "DeleteArchive"
+	NameDeleteZip = "DeleteZip"
 
+	def __init__(self):
+		super().__init__()
 
-	def __init__(self, cfg_Path):
+	def SetFromFile(self, cfg_file):
 		config = configparser.ConfigParser()
-		configPath = Path(cfg_Path)
-		self.confError = False
+		configPath = Path(cfg_file)
 		if not configPath.exists():
-			self.InitConfigFile(configPath)
+			print(f"error: {cfg_file} Not found")
 			return
 		config.read(cfg_Path)
 		default = config[self.SectionName]
-		#path
-		self.initalDir = default.get(self.InitialName)
-		self.dstDir = default.get(self.DestName)
-		self.archiveDst = default.get(self.ArchiveName)
-		#delete var
-		self.deleteReadme = default.getboolean(self.NameDeleteReadme)
-		self.deleteLicense = default.getboolean(self.NameDeleteLicense)
-		self.deleteArchive = default.getboolean(self.NameDeleteArchive)
+		#Path
+		self.DefaultDstDir = default.get(self.DestName)
+		self.DefaultZipDst = default.get(self.ZipName)
+		#Del Flag
+		self.delReadme = default.getboolean(self.NameDeleteReadme)
+		self.delLicense = default.getboolean(self.NameDeleteLicense)
+		self.delZip = default.getboolean(self.NameDeleteZip)
 
-	def _initPopUp(self):
-		title = "Init Config"
-		msg = "Follow initalitation of config file"
-		ret = messagebox.askyesno(title=title, message=msg)
-		return ret
+	def SetFromArg(self, arg):
+		#Path
+		self.DefaultDstDir = arg.dstDir
+		self.DefaultZipDst = arg.ZipDst
+		#Del Flag
+		self.delReadme = arg.delReadme
+		self.delLicense = arg.delLicense
+		self.delZip = arg.delZip
 
-	def _initSourceDir(self):
-		title = "Initial Dir for selection"
-		source_folder = filedialog.askdirectory(title=title)
-		return Path(source_folder)
-
-	def _initDestDir(self):
-		title = "Dir for extraction"
-		dest_folder = filedialog.askdirectory(title=title)
-		return Path(dest_folder)
-
-	def _initDeleteArchive(self):
-		title = "Delete Archive"
-		msg = "Do you whant to delete Zip file after extraction"
-		ret = messagebox.askyesno(title=title, message=msg, default="no")
-		return ret
-
-	def _initArchiveDest(self):
-		title = "Archive Dest"
-		dest_Archive = filedialog.askdirectory(title=title)
-		return Path(dest_Archive)
-
-
-	def _SaveConfig(self, configPath):
+	def SaveToFile(self, path):
+		confifPath = Path(path)
 		config = configparser.ConfigParser()
 		config.add_section(self.SectionName)
-		#path
-		config.set(self.SectionName, self.InitialName, str(self.initalDir))
-		config.set(self.SectionName, self.DestName, str(self.destDir))
-		config.set(self.SectionName, self.ArchiveName, str(self.archiveDest))
-		#delete 
-		config.set(self.SectionName, self.NameDeleteReadme, str(self.deleteReadme))
-		config.set(self.SectionName, self.NameDeleteLicense, str(self.deleteLicense))
-		config.set(self.SectionName, self.NameDeleteArchive, str(self.deleteArchive))
+		#Path
+		config.set(self.SectionName, self.DestName, str(self.DefaultDstDir))
+		config.set(self.SectionName, self.ZipName, str(self.DefaultZipDst))
+		#Del flag
+		config.set(self.SectionName, self.NameDeleteReadme, str(self.delReadme))
+		config.set(self.SectionName, self.NameDeleteLicense, str(self.delLicense))
+		config.set(self.SectionName, self.NameDeleteZip, str(self.delZip))
 		
 		with open(configPath.resolve(), "w") as fd:
 			config.write(fd)
 		configPath.chmod(0o755)
-
-	def InitConfigFile(self, configPath):
-		if not self._initPopUp():
-			self.confError = True
-			return
-		self.initalDir = self._initSourceDir()
-		self.destDir = self._initDestDir()
-		self.deleteArchive = self._initDeleteArchive()
-		self.archiveDest = self._initArchiveDest()
-		self.interactive = self._initInteractive()
-		self._SaveConfig(configPath)

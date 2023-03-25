@@ -6,14 +6,17 @@ import zipfile
 import shutil
 
 from pathlib import Path
+
+from config import ConfigModel
 from globalVar import *
 
-class ThingFile:
+class ThingFile(ConfigModel):
 	"""
 		Model
 	"""
 	def __init__(self, zipSrc, dstDir=None, dstName=None, zipDstDir=None, zipDstName=None,
-			delReadme=False, delLicense=False, delZip=False):
+			delReadme=None, delLicense=None, delZip=None):
+		super().__init__()
 		self.zipSrc = Path(zipSrc)
 
 		# extraction dst
@@ -32,12 +35,9 @@ class ThingFile:
 		if not zipDstName:
 			zipDstName = self.zipSrc.name
 		self.zipDstName = Path(zipDstName)
-		#flag
-		self.delReadme = delReadme
-		self.delLicense = delLicense
-		self.delZip = delZip
 
 	def __setattr__(self, name, value):
+		#Dst
 		if name == "dst":
 			if not value:
 				return
@@ -45,6 +45,7 @@ class ThingFile:
 			self.dstDir = dst.parent.resolve()
 			self.dstName = dst.name
 			print(f"set dst: {value} -> parent {self.dstDir}, Name: {self.dstName}")
+		#ZipDst
 		if name == "zipDst":
 			if not value:
 				self.zipDstDir = None
@@ -53,31 +54,36 @@ class ThingFile:
 				zipDst = Path(value)
 				self.zipDstDir = zipDst.parent.resolve()
 				self.zipDstName = zipDst.name
+		#End
 		else:
 			super().__setattr__(name, value)
 
 	def __getattribute__(self, name):
+		#Dst
 		if name == "dst":
 			return self.dstDir / self.dstName
+		#ZipDst
 		if name == "zipDst":
 			if not self.zipDstDir:
 				return None
 			return self.zipDstDir / self.zipDstName
+		#End
 		else:
 			return super().__getattribute__(name)
 
-class ThingControl:
+class ThingControl(ConfigControl):
 	"""
 		Control
 	"""
 
 	def __init__(self, zipList = None):
+		super().__init__()
 		self.ThingList = []
 		if not zipList:
 			return
 		self.FeedList(zipList)
 
-	def Append(self, arg):
+	def AppendArg(self, arg):
 		self.ThingList.append(ThingFile(arg))
 
 	def AppendThing(self, thing):
