@@ -34,13 +34,18 @@ class ConfigControl(ConfigModel):
 	def __init__(self):
 		super().__init__()
 
+	def MakePath(self, path):
+		if not isinstance(path, Path):
+			return Path.home() / Path(path)
+		return path
+
 	def SetFromFile(self, cfg_file):
 		config = configparser.ConfigParser()
-		configPath = Path(cfg_file)
+		configPath = self.MakePath(cfg_file)
 		if not configPath.exists():
 			print(f"error: {cfg_file} Not found")
 			return
-		config.read(cfg_Path)
+		config.read(configPath)
 		default = config[self.SectionName]
 		#Path
 		self.DefaultDstDir = default.get(self.DestName)
@@ -60,12 +65,12 @@ class ConfigControl(ConfigModel):
 		self.delZip = arg.delZip
 
 	def SaveToFile(self, path):
-		confifPath = Path(path)
+		configPath = self.MakePath(path)
 		config = configparser.ConfigParser()
 		config.add_section(self.SectionName)
 		#Path
-		config.set(self.SectionName, self.DestName, str(self.DefaultDstDir))
-		config.set(self.SectionName, self.ZipName, str(self.DefaultZipDst))
+		config.set(self.SectionName, self.DestName, str(self.defaultDstDir))
+		config.set(self.SectionName, self.ZipName, str(self.defaultZipDst))
 		#Del flag
 		config.set(self.SectionName, self.NameDeleteReadme, str(self.delReadme))
 		config.set(self.SectionName, self.NameDeleteLicense, str(self.delLicense))
@@ -74,3 +79,13 @@ class ConfigControl(ConfigModel):
 		with open(configPath.resolve(), "w") as fd:
 			config.write(fd)
 		configPath.chmod(0o755)
+
+class ConfigView:
+	
+	@staticmethod
+	def PrintAll(config):
+		print(f"Dst dir: {config.defaultDstDir}")
+		print(f"Zip dir: {config.defaultZipDst}")
+		print(f"del Readme: {config.delReadme}")
+		print(f"del License: {config.delLicense}")
+		print(f"del Zip: {config.delZip}")

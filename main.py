@@ -11,10 +11,10 @@ from globalVar import *
 from argvparser import argvparses
 from thingExtractor import ThingControl, ThingFile
 
-
-def chdir():
-	path = Path(sys.argv[0])
-	os.chdir(path.parent)
+#try:
+from Gui.mastergui import mainGui
+#except ImportError:
+	#mainGui = None
 
 
 def InteraciveConsole(argsList):
@@ -74,14 +74,11 @@ def mainConsole():
 
 
 if __name__ == "__main__":
-	mainConsole()
-
-#if __name__ == "__main__":
-#	if ThingGui.EnabalGui():
-#		# Mode Gui
-#		chdir()
-#		mainGui()
-#		
-#	else:
-#		# Mode Console
-#		mainConsole()
+	if mainGui:
+		# Mode Gui
+		print(f"Run Gui")
+		mainGui()
+		
+	else:
+		# Mode Console
+		mainConsole()

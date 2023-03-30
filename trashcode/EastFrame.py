@@ -1,4 +1,7 @@
-
+import tkinter as tk
+from tkinter import ttk
+from tkinter import filedialog
+from tkinter import messagebox
 
 class EastFrame(tk.Frame):
 	"""
@@ -38,7 +41,7 @@ class EastFrame(tk.Frame):
 		else:
 			self._clearDoublon(zipList)
 		for zipfile in zipList:
-			self.ThingList.append(ThingExtractor(src=zipfile, dstDir=self.config.dstDir, archivedstDir=self.config.archiveDst ))
+			self.ThingList.append(ThingExtractor(src=zipfile, dstDir=self.config.dstDir, ZipdstDir=self.config.ZipDst ))
 			self.ziptext.insert(tk.END, Path(zipfile).name + "\n")
 
 		self.UpdateButton()

@@ -1,4 +1,10 @@
-class NortWestFrame(tk.Frame):
+
+import tkinter as tk
+from tkinter import ttk
+from tkinter import filedialog
+from tkinter import messagebox
+
+class NorthWestFrame(tk.Frame):
 
 	def __init__(self, master):
 		super().__init__(master, highlightbackground="black", highlightthickness=1)

@@ -4,7 +4,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 
-class WestFrame(tk.Frame):
+class LeftConfig(tk.Frame):
 	"""
 	"""
 
@@ -17,7 +17,7 @@ class WestFrame(tk.Frame):
 		self.TitleFrame()
 		self.ReadmeBox()
 		self.LicenseBox()
-		self.ArchiveBox()
+		self.ZipBox()
 		self.SaveButton()
 	
 	def TitleFrame(self):
@@ -38,12 +38,12 @@ class WestFrame(tk.Frame):
 			variable=self.checkbox_License_var, padx=2, pady=2)
 		self.checkbox_License.grid(column=0, padx=5, pady=5)
 		
-	def ArchiveBox(self):
-		text_archive = "Remove Archive.zip"
-		self.checkbox_archive_var = tk.BooleanVar(value=False)
-		self.checkbox_archive = tk.Checkbutton(self, text=text_archive, \
-			variable=self.checkbox_archive_var, padx=2, pady=2)
-		self.checkbox_archive.grid(column=0, padx=5, pady=5)
+	def ZipBox(self):
+		text_Zip = "Remove Zip.zip"
+		self.checkbox_Zip_var = tk.BooleanVar(value=False)
+		self.checkbox_Zip = tk.Checkbutton(self, text=text_Zip, \
+			variable=self.checkbox_Zip_var, padx=2, pady=2)
+		self.checkbox_Zip.grid(column=0, padx=5, pady=5)
 
 	def SaveButton(self):
 		self.button_save = ttk.Button(self, text="Save", command=self.SaveConfig)

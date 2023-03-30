@@ -7,7 +7,7 @@ import shutil
 
 from pathlib import Path
 
-from config import ConfigModel
+from config import ConfigModel, ConfigControl
 from globalVar import *
 
 class ThingFile(ConfigModel):
@@ -100,7 +100,7 @@ class ThingControl(ConfigControl):
 			dst.parent.mkdir()
 		if dst.exists():
 			return False
-		return True	
+		return True
 
 	def ZipExtractor(self, thing):
 		if self._Checkdst(thing.dst) == False:
